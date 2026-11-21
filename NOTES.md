@@ -88,26 +88,33 @@ Status is one of: `fixed`, `partly fixed`, `not fixed`. Commits: the short hashe
 
 > Open question from support, no single right answer: sometimes a customer really does pay twice for one order (two separate payments, not a retry of the same one). Today the system records both and says nothing. Decide what should happen, build the smallest version of your decision, and explain what it costs in `NOTES.md`.
 
-**My decision:** TODO: fill in
+**My decision:** If the same order gets a second, different payment, the system keeps both payments and flags the order for a refund. It does not reject the payment and it does not refund automatically.
 
-**Why:** TODO: fill in
+**Why:** The money really arrived, so it must be recorded. If I rejected the second payment, the money would be taken from the customer but we would have no record of it. An automatic refund is risky, because some customers may pay twice on purpose, and a wrong refund loses money. So a person checks it and decides.
 
-**What it costs:** TODO: fill in
+**What it costs:** A person has to look at the flags and refund by hand. The customer waits until someone does this. This version has no button to mark a flag as "refunded", so the list only grows. The daily report still counts the extra money until it is refunded. Also, only the extra amount is flagged, so if the customer paid in parts, I flag only the part above the order total.
 
-**What I built:** TODO: fill in
+**What I built:** A new table `refund_flags` in `db.py`. In `payments.py`, when the total received is more than the order total, the extra amount is saved as a flag. This is in the same transaction as the payment. A repeated webhook with the same id is ignored, so it is never flagged twice. In `api.py`, I added `GET /refund-flags`, so support can see the list.
 
-**How I verified it:** TODO: fill in
+**How I verified it:** I wrote 5 tests in `tests/test_report6.py`: a single payment gives no flag, a second payment is kept and flagged, a repeated webhook is not flagged again, only the extra part is flagged when paid in parts, and the flags show in the API. All 13 older tests and these tests pass.
 
-**Commits:** TODO: fill in
+**Commits:** 86fe932
 
 ## Other things I noticed
 
 Problems outside the reports: what, where, and whether you fixed them. Write `none` if there were none.
 
-TODO: fill in
+- Product price is saved separately in each worker. If the price changes in one worker, the other worker may still use the old price. I did not fix this.
+- cancel reads the order status before it starts its transaction, so two cancels at the same time could give the stock back twice. I did not fix this.
+- A bad JSON body can crash server.py. I did not fix this.
+- A payment for a cancelled order is rejected, so the provider keeps retrying while the customer's money may already be taken. I did not fix this.
 
 ## Session logs
 
 Which AI tools you used, and one line per file in `session_logs/`.
 
-TODO: fill in
+Tool used: Claude (claude.ai chat). No other AI tool.
+
+- session_logs/claude_session.md: the full conversation with Claude about this assignment, from the first message to the last.
+
+My folder had no git repository, so the git commits were created with two helper scripts written by Claude (make_commits.py and add_report6.py). They contain the same fixes described above.

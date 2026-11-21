@@ -32,14 +32,32 @@ class Payments:
                 (order["id"], event["id"], event["amount_cents"], db.to_iso(now or db.utcnow())),
             )
             status = self.conn.execute("SELECT status FROM orders WHERE id = ?", (order["id"],)).fetchone()["status"]
-            if status == "pending" and self.paid_cents(order["id"]) >= order["total_cents"]:
+            paid = self.paid_cents(order["id"])
+            if status == "pending" and paid >= order["total_cents"]:
                 self.conn.execute("UPDATE orders SET status = 'paid' WHERE id = ?", (order["id"],))
                 status = "paid"
+            # A second, different payment for the same order: keep it (the money really arrived),
+            # but flag the extra amount so a person can refund it.
+            already_flagged = self.conn.execute(
+                "SELECT COALESCE(SUM(amount_cents), 0) AS n FROM refund_flags WHERE order_id = ?", (order["id"],)
+            ).fetchone()["n"]
+            extra = paid - order["total_cents"] - already_flagged
+            if extra > 0:
+                self.conn.execute(
+                    "INSERT INTO refund_flags (order_id, event_id, amount_cents, flagged_at) VALUES (?, ?, ?, ?)",
+                    (order["id"], event["id"], extra, db.to_iso(now or db.utcnow())),
+                )
             self.conn.execute("COMMIT")
         except Exception:
             self.conn.execute("ROLLBACK")
             raise
         return status
+
+    def refund_flags(self):
+        """Orders that received more money than their total. Support refunds these by hand."""
+        rows = self.conn.execute(
+            "SELECT order_id, event_id, amount_cents, flagged_at FROM refund_flags ORDER BY id").fetchall()
+        return [dict(r) for r in rows]
 
     def paid_cents(self, order_id):
         row = self.conn.execute(

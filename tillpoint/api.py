@@ -37,6 +37,8 @@ class App:
             if method == "PUT" and m:
                 self.catalog.update_price(m.group(1), body["price_cents"])
                 return 200, {"sku": m.group(1), "price_cents": body["price_cents"]}
+            if method == "GET" and path == "/refund-flags":
+                return 200, {"flags": self.payments.refund_flags()}
             if method == "POST" and path == "/webhooks/payments":
                 return 200, {"status": self.payments.handle_event(body)}
             m = re.fullmatch(r"/reports/daily/(\d{4}-\d{2}-\d{2})", path)

@@ -8,81 +8,81 @@ Status is one of: `fixed`, `partly fixed`, `not fixed`. Commits: the short hashe
 
 > Finance says that on some days the revenue in the daily report is higher than what the payment provider paid out, and a few orders show more money received than their total.
 
-**Status:** TODO: fill in
+**Status:** fixed
 
-**What I saw:** TODO: fill in
+**What I saw:** Same payment was counted two times. Paid amount was 2000 for an order of 1000.
 
-**Root cause:** TODO: fill in
+**Root cause:** The payment provider sends the same webhook again if it gets no reply. The code saved every copy. It did not check the payment id.
 
-**Fix and why:** TODO: fill in
+**Fix and why:** Before saving, the code checks if this id is already saved. If yes, it does nothing. This is in payments.py.
 
-**How I verified it:** TODO: fill in
+**How I verified it:** I made a test that sends the same event two times. The old code gave 2000, the new code gives 1000. Test: test_report1_repeated_webhook_is_counted_once.
 
-**Commits:** TODO: fill in
+**Commits:** d05bd41, 80f6d70
 
 ## 2. Report
 
 > Products show as sold out, or nearly, while the shelf is full. Staff say it gets worse on days when many customers abandon checkout.
 
-**Status:** TODO: fill in
+**Status:** fixed
 
-**What I saw:** TODO: fill in
+**What I saw:** After a customer cancelled a pending order, the stock stayed low. I reserved 4 of 10, cancelled, and stock was 6 instead of 10.
 
-**Root cause:** TODO: fill in
+**Root cause:** Stock is taken when the order is created. But cancel gave stock back only for paid orders. Abandoned checkouts are still pending, so their stock was lost forever.
 
-**Fix and why:** TODO: fill in
+**Fix and why:** Every cancelled order now gives its stock back (orders.py).
 
-**How I verified it:** TODO: fill in
+**How I verified it:** Test test_report2_cancelling_pending_order_returns_stock
 
-**Commits:** TODO: fill in
+**Commits:** 017d9a6, 80f6d70
 
 ## 3. Report
 
 > Customers in taxed regions who used a coupon say the tax on their receipt is too high. Receipts without a coupon are right.
 
-**Status:** TODO: fill in
+**Status:** fixed
 
-**What I saw:** TODO: fill in
+**What I saw:** After a customer cancelled a pending order, the stock stayed low. I reserved 4 of 10, cancelled, and stock was 6 instead of 10.
 
-**Root cause:** TODO: fill in
+**Root cause:** Tax was worked out on the price before the coupon discount.
 
-**Fix and why:** TODO: fill in
+**Fix and why:** Discount first, then tax on the lower price (pricing.py). Example: a 1000 order in CA with a 10% coupon now has tax 65, not 73.
 
-**How I verified it:** TODO: fill in
+**How I verified it:** Test test_report3_tax_is_on_the_discounted_price.
 
-**Commits:** TODO: fill in
+**Commits:** c5e7ea6, 80f6d70
 
 ## 4. Report
 
 > Our shop in India (UTC+5:30) says sales taken in the morning do not appear in that day's report and turn up under the day before.
 
-**Status:** TODO: fill in
+**Status:** fixed
 
-**What I saw:** TODO: fill in
+**What I saw:** After a customer cancelled a pending order, the stock stayed low. I reserved 4 of 10, cancelled, and stock was 6 instead of 10.
 
-**Root cause:** TODO: fill in
+**Root cause:** India is 5:30 ahead of UTC. The code added the offset when it should subtract it, so the day started at the wrong time. This was a + that should be - (reports.py).
 
-**Fix and why:** TODO: fill in
+**Fix and why:** Discount first, then tax on the lower price (pricing.py). Example: a 1000 order in CA with a 10% coupon now has tax 65, not 73.
 
-**How I verified it:** TODO: fill in
+**How I verified it:** Two tests, test_report4_day_bounds_for_utc_plus_530 and test_report4_morning_sale_in_india_is_in_that_days_report.
 
-**Commits:** TODO: fill in
+**Commits:** 7a377e3, 80f6d70
 
 ## 5. Report
 
 > Ever since we started running two server workers, we have sold more units of an item than we had, and its stock went negative.
 
-**Status:** TODO: fill in
+**Status:** fixed
 
-**What I saw:** TODO: fill in
+**What I saw:** After a customer cancelled a pending order, the stock stayed low. I reserved 4 of 10, cancelled, and stock was 6 instead of 10.
 
-**Root cause:** TODO: fill in
+**Root cause:** Each worker keeps its own saved copy of the stock. The code checked that old copy, and then subtracted. Two workers could both sell the last units.
 
-**Fix and why:** TODO: fill in
+**Fix and why:** One database command checks and subtracts together, so the saved copy isn't used (catalog.py).
 
-**How I verified it:** TODO: fill in
+**How I verified it:** Test test_report5_two_workers_cannot_oversell. The old code ended with stock -5.
 
-**Commits:** TODO: fill in
+**Commits:** f11fe3e, 80f6d70
 
 ## 6. Open question
 

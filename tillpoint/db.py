@@ -42,6 +42,13 @@ CREATE TABLE IF NOT EXISTS payments (
     amount_cents INTEGER NOT NULL,
     received_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS refund_flags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL REFERENCES orders(id),
+    event_id TEXT NOT NULL,
+    amount_cents INTEGER NOT NULL,
+    flagged_at TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer, created_at);
 """
